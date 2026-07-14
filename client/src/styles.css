@@ -402,17 +402,15 @@ html, body, #root {
 }
 
 .msg-bubble {
-  max-width: 72%;
   padding: 12px 16px;
   border-radius: var(--radius-lg);
   font-size: 14px;
   line-height: 1.65;
-  position: relative;
 }
 
 .msg-bubble--user {
-  background: var(--accent);
-  color: #fff;
+  background: #1e3a5f;
+  color: #e8edf5;
   border-bottom-right-radius: 6px;
 }
 
@@ -438,6 +436,115 @@ html, body, #root {
     box-shadow: 0 0 28px var(--accent-glow), 0 0 48px rgba(99, 102, 241, 0.14);
     border-color: rgba(99, 102, 241, 0.55);
   }
+}
+
+/* 消息组：气泡 + 操作按钮 */
+.msg-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 72%;
+}
+
+.msg-row--user .msg-group {
+  align-items: flex-end;
+}
+
+/* 消息下方操作按钮（始终可见） */
+.msg-actions {
+  display: flex;
+  gap: 4px;
+  padding: 3px 2px 0;
+}
+
+.msg-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.msg-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.msg-action-btn--done {
+  color: var(--success) !important;
+}
+
+/* 编辑模式 */
+.msg-edit-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg-edit-input {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  background: var(--bg-root);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+}
+
+.msg-edit-input:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.msg-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.msg-edit-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex: 1;
+}
+
+.msg-edit-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.msg-edit-btn--save {
+  background: var(--accent);
+  color: #fff;
+}
+
+.msg-edit-btn--save:hover {
+  filter: brightness(1.1);
+}
+
+.msg-edit-btn--cancel {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.msg-edit-btn--cancel:hover {
+  background: var(--bg-elevated);
 }
 
 .msg-bubble pre {
@@ -699,6 +806,7 @@ html, body, #root {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   transition: border-color var(--transition);
+  overflow: hidden;
 }
 
 .exec-item__top {
@@ -725,9 +833,11 @@ html, body, #root {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-tertiary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 60px;
+  overflow-y: auto;
+  line-height: 1.4;
 }
 
 .exec-item__result {
@@ -739,6 +849,7 @@ html, body, #root {
   font-size: 11px;
   color: var(--text-secondary);
   white-space: pre-wrap;
+  word-break: break-all;
   max-height: 120px;
   overflow-y: auto;
   line-height: 1.45;

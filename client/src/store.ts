@@ -52,6 +52,7 @@ interface AppState {
   loadSessionMessages: (sessionId: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   setCurrentSessionId: (id: string | null) => void;
+  editMessage: (id: string, content: string) => void;
 }
 
 let msgId = 0;
@@ -217,6 +218,12 @@ export const useStore = create<AppState>((set, get) => ({
     set({ systemPrompt: p });
   },
   toggleSettings: () => set((s) => ({ showSettings: !s.showSettings })),
+
+  editMessage(id, content) {
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, content } : m)),
+    }));
+  },
 
   // ===== 会话管理 =====
 

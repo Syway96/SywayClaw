@@ -23,7 +23,7 @@ app.use(express.json());
 const defaultConfig: Partial<LlmConfig> = {
   model: "deepseek-v4-pro",
   systemPrompt: [
-    "你是 SywayClaw，一个智能编程助手。你运行在用户的本地环境中，拥有以下工具：",
+    "你是 SywayClaw，一个智能助手。你运行在用户的本地环境中，拥有以下工具：",
     "- read_file: 读取文件内容",
     "- read_lines: 按行范围读取文件（适合大文件）",
     "- write_file: 写入或覆盖文件",
@@ -127,19 +127,60 @@ app.post("/api/chat", async (req, res) => {
   // 禁用 Nagle 算法，确保实时流式传输
   if (res.socket) res.socket.setNoDelay(true);
 
-  // 收集工具调用事件
+  // 收集工具调用事件（用于临时匹配 start/end）
   const toolCallList: Array<{ name: string; args: string; result?: string; error?: string }> = [];
 
+  // 跟踪助手回复片段（文本 / 工具调用按时间序排列）
+  type AssistantSegment =
+    | { type: "text"; content: string }
+    | { type: "tool"; name: string; args: string; result?: string; error?: string };
+  const segments: AssistantSegment[] = [];
+  let textBuffer = "";
+
   const emit = (event: ServerEvent) => {
-    if (event.type === "tool_call_start") {
-      toolCallList.push({ name: event.toolName, args: event.args });
-    } else if (event.type === "tool_call_end") {
-      const last = toolCallList[toolCallList.length - 1];
-      if (last) last.result = event.result;
-    } else if (event.type === "tool_call_error") {
-      const last = toolCallList[toolCallList.length - 1];
-      if (last) last.error = event.error;
+    switch (event.type) {
+      case "text_delta":
+        textBuffer += event.text;
+        break;
+
+      case "tool_call_start":
+        // 工具调用前先保存累积的文本片段
+        if (textBuffer) {
+          segments.push({ type: "text", content: textBuffer });
+          textBuffer = "";
+        }
+        toolCallList.push({ name: event.toolName, args: event.args });
+        break;
+
+      case "tool_call_end": {
+        const last = toolCallList[toolCallList.length - 1];
+        if (last) {
+          last.result = event.result;
+          segments.push({
+            type: "tool",
+            name: last.name,
+            args: last.args,
+            result: event.result,
+          });
+        }
+        break;
+      }
+
+      case "tool_call_error": {
+        const last = toolCallList[toolCallList.length - 1];
+        if (last) {
+          last.error = event.error;
+          segments.push({
+            type: "tool",
+            name: last.name,
+            args: last.args,
+            error: event.error,
+          });
+        }
+        break;
+      }
     }
+
     res.write(`data: ${JSON.stringify(event)}\n\n`);
     // 强制刷新响应缓冲区
     if (typeof (res as any).flush === "function") {
@@ -147,10 +188,8 @@ app.post("/api/chat", async (req, res) => {
     }
   };
 
-  let assistantReply = "";
-
   try {
-    assistantReply = await runAgentLoop(message, config, emit, history);
+    await runAgentLoop(message, config, emit, history);
     emit({ type: "done" });
   } catch (e: unknown) {
     emit({
@@ -158,10 +197,20 @@ app.post("/api/chat", async (req, res) => {
       message: e instanceof Error ? e.message : String(e),
     });
   } finally {
-    // 保存 assistant 回复（含工具调用）
-    if (assistantReply) {
-      const tcJson = toolCallList.length > 0 ? JSON.stringify(toolCallList) : undefined;
-      saveMessage(sid, "assistant", assistantReply, tcJson);
+    // 保存剩余文本缓冲区
+    if (textBuffer) {
+      segments.push({ type: "text", content: textBuffer });
+    }
+
+    // 按片段顺序保存到数据库，保留文本与工具调用的交错顺序
+    for (const seg of segments) {
+      if (seg.type === "text") {
+        saveMessage(sid, "assistant", seg.content);
+      } else {
+        saveMessage(sid, "assistant", "",
+          JSON.stringify([{ name: seg.name, args: seg.args, result: seg.result, error: seg.error }])
+        );
+      }
     }
 
     // 自动生成标题（仅首次对话）
