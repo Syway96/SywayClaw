@@ -1,0 +1,9 @@
+{
+  "name": "sywayclaw",
+  "private": true,
+  "scripts": {
+    "dev:server": "cd server && npx tsx --watch src/index.ts",
+    "dev:client": "cd client && npx vite",
+    "dev": "start /B npm run dev:server && npm run dev:client"
+  }
+}
