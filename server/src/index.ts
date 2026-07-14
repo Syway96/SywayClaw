@@ -40,6 +40,12 @@ const defaultConfig: Partial<LlmConfig> = {
   ].join("\n"),
 };
 
+// ===================== 默认提示词 API =====================
+
+app.get("/api/default-prompt", (_req, res) => {
+  res.json({ prompt: defaultConfig.systemPrompt });
+});
+
 // ===================== 会话 API =====================
 
 // 获取会话列表

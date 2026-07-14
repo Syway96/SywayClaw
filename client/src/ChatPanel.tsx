@@ -256,7 +256,7 @@ export default function ChatPanel() {
                     </>
                   )}
                 </div>
-                {!isEditing && (
+                {!isEditing && msg.content && (
                   <MsgActions
                     onCopy={() => handleCopy(msg.content)}
                     onEdit={msg.role === "user" ? () => setEditingId(msg.id) : undefined}
